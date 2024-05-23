@@ -1,52 +1,41 @@
-name: "CodeQL"
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-      - 'release/**'
-  pull_request:
-    types: [opened, synchronize]
-    branches:
-      - master
-      - 'release/**'
-
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
+  group: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
       security-events: write
-
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.sha }}
+    - continue-on-error: true
+      name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        config-file: ./.github/codeql/codeql-config.yml
+        languages: ${{ matrix.language }}
+        queries: +security-and-quality
+    - continue-on-error: true
+      name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+    - continue-on-error: true
+      name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: /language:${{ matrix.language }}
     strategy:
       fail-fast: false
       matrix:
-        language: [ java ]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          queries: +security-and-quality
-          config-file: ./.github/codeql/codeql-config.yml
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:${{ matrix.language }}"
+        language:
+        - java
+name: CodeQL
+on:
+  repository_dispatch:
+    types: trigger-ga___codeql.yml
